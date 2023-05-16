@@ -1,13 +1,13 @@
+import logging
+import os
 import re
 import time
-from telegram import Update
-from telegram.ext import MessageHandler, filters, Application, ContextTypes, CommandHandler
-import logging
+
 import requests
 from bs4 import BeautifulSoup as bs4
-import os
 from dotenv import load_dotenv
-
+from telegram import Update
+from telegram.ext import Application, CommandHandler
 
 load_dotenv()
 
@@ -37,6 +37,7 @@ def login(r):
         f"LoginForm[username]={SURNAME}&LoginForm[policy]={POLICY}&submit=Продолжить".encode("utf8"))
     auth_result = r.post(url=login_url, headers=headers, data=login_data)
     check.auth(auth_result)
+
 
 
 def dentist(r):
@@ -103,15 +104,12 @@ def watcher(t):
                         vacant[d[0]].append([data[0][i_x], x[0], x[1]])
                     except KeyError:
                         vacant[d[0]] = [[data[0][i_x],x[0], x[1]]]
-                    
-        
+
         return vacant
     
     data = get_data(t)
     vacant = get_vacant(data)
     return vacant
-
-
 
 
 def request():
@@ -123,43 +121,36 @@ def request():
         return watcher(table)
 
 
-
 TOKEN = os.getenv("TOKEN")
 UPD_TIME = int(os.getenv("UPD_TIME")) 
 
 def bot(data) -> None:
-    logging.basicConfig(format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level = logging.INFO)
-    logger = logging.getLogger(__name__)
-
+    logging.basicConfig(
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
+    )
+    logging.getLogger(__name__)
     async def start(update: Update, context):
         user = update.effective_user
         start_msg = rf"Привет, {user.mention_html()}! Этот бот представляет из себя watcher для сайта записи ко врачу в Екатеринбурге через муниципальный портал. Вводя свои фамилию и номер медицинского полиса, Вы имеете возможность подписаться на интересующих Вас специалистов. Когда появятся свободные окна для записи, этот бот непременно Вас уведомит об этом!"
-        
-        await update.message.reply_html(
-            start_msg
-        )
 
-    async def check(update: Update,context):
+        await update.message.reply_html(start_msg)
+    async def check(update: Update, context):
         def vacant_info(v):
             return f"{v[1]} свободных мест на {v[0]} в промежутке времени {v[2]}"
 
         while True:
             for key in data:
-                check_msg = "Появились свободные записи! \n\n %s: \n • %s" % (key.upper().strip(), ";\n • ".join([vacant_info(x) for x in data[key]]) + ".")
+                check_msg = "Появились свободные записи! \n\n %s: \n • %s" % (
+                    key.upper().strip(),
+                    ";\n • ".join([vacant_info(x) for x in data[key]]) + ".",
+                )
                 await update.message.reply_html(check_msg)
             time.sleep(UPD_TIME)
-       
-
     application = Application.builder().token(TOKEN).build()
-
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("check", check))
-
-    
-
     application.run_polling()
 
-    
 
 
 if __name__ == '__main__':

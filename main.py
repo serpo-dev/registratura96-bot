@@ -124,7 +124,7 @@ def request():
 TOKEN = os.getenv("TOKEN")
 UPD_TIME = int(os.getenv("UPD_TIME")) 
 
-def bot(data) -> None:
+def bot(req) -> None:
     logging.basicConfig(
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
     )
@@ -137,16 +137,23 @@ def bot(data) -> None:
     async def check(update: Update, context):
         def vacant_info(v):
             return f"{v[1]} свободных мест на {v[0]} в промежутке времени {v[2]}"
-        cache = ""
+        cache_msg = ""
         while True:
+            data = req()
+            is_keys = False
+            check_msg = "Текущие свободные записи:"
             for key in data:
-                check_msg = "Появились свободные записи! \n\n %s: \n • %s" % (
+                is_keys = True
+                check_msg += "\n\n %s: \n • %s" % (
                     key.upper().strip(),
                     ";\n • ".join([vacant_info(x) for x in data[key]]) + ".",
                 )
-                if check_msg != cache:
-                    cache = check_msg
-                    await update.message.reply_html(check_msg)
+            if (check_msg != cache_msg) and (is_keys == True):
+                cache_msg = check_msg
+                await update.message.reply_html(check_msg)
+            if((is_keys == False) and (len(cache_msg) > 0)):
+                cache_msg = ""
+                await update.message.reply_html("Больше не осталось мест для записи.")
             time.sleep(UPD_TIME)
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
@@ -156,5 +163,4 @@ def bot(data) -> None:
 
 
 if __name__ == '__main__':
-    data = request()
-    bot(data)
+    bot(request)

@@ -137,14 +137,16 @@ def bot(data) -> None:
     async def check(update: Update, context):
         def vacant_info(v):
             return f"{v[1]} свободных мест на {v[0]} в промежутке времени {v[2]}"
-
+        cache = ""
         while True:
             for key in data:
                 check_msg = "Появились свободные записи! \n\n %s: \n • %s" % (
                     key.upper().strip(),
                     ";\n • ".join([vacant_info(x) for x in data[key]]) + ".",
                 )
-                await update.message.reply_html(check_msg)
+                if check_msg != cache:
+                    cache = check_msg
+                    await update.message.reply_html(check_msg)
             time.sleep(UPD_TIME)
     application = Application.builder().token(TOKEN).build()
     application.add_handler(CommandHandler("start", start))
